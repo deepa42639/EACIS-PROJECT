@@ -1,0 +1,21 @@
+### EACIS EMERGENCY MEDICAL DATASET - V1.0 ###
+
+[DOMAIN: FLASH FLOOD SURVIVAL]
+- THREAT: Contaminated Water. 
+- ACTION: Do not wade in floodwater. If exposed, wash skin with soap immediately. 
+- RISK: Open wounds exposed to floodwater require antiseptic and immediate covering.
+
+[DOMAIN: TRAUMA & BLEEDING]
+- THREAT: Active Hemorrhage.
+- ACTION: Apply firm, direct pressure using the cleanest available cloth. Do not remove soaked bandages; add more on top.
+- POSITION: Elevate the injured limb above heart level if possible.
+
+[DOMAIN: FRACTURES]
+- THREAT: Broken Bone.
+- ACTION: Immobilize the area. Use sticks or folded cardboard as temporary splints.
+- CAUTION: Do not attempt to "straighten" or "reset" the bone.
+
+[DOMAIN: HYPOTHERMIA/SHOCK]
+- THREAT: Core Temperature Drop.
+- ACTION: Remove wet clothing. Wrap in dry blankets or emergency foil.
+- POSITION: Lay the patient flat with feet slightly elevated.

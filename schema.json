@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EACIS Disaster Intelligence Schema",
+  "type": "object",
+  "required": ["alert_type", "predicted_threat", "location", "prediction_stats"],
+  "properties": {
+    "alert_type": {
+      "type": "string",
+      "description": "The general category of the emergency (e.g., Flash Flood)."
+    },
+    "predicted_threat": {
+      "type": "string",
+      "description": "High-priority prediction from Gemma 4 identifying the specific danger (e.g., Contaminated Water, Structural Instability)."
+    },
+    "priority_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "1 is Critical, 5 is Advisory."
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lon": { "type": "number" },
+        "label": { "type": "string" }
+      }
+    },
+    "prediction_stats": {
+      "type": "object",
+      "properties": {
+        "confidence_score": { "type": "string" },
+        "time_to_impact_min": { "type": "integer" }
+      }
+    },
+    "medical_steps": {
+      "type": "string",
+      "description": "Offline medical advice extracted from the First Aid Knowledge Base."
+    }
+  }
+}

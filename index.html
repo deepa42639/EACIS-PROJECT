@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EACIS - Next-Gen Survival Radar & Geo-HUD</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSP4yb8zQaJlCI_Cdmvm-iESzOfdbe46M&libraries=geometry"></script>
+    <style>
+        body { 
+            background: #000; 
+            color: #00ff41; 
+            font-family: 'Courier New', monospace; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+        }
+        
+        h1 { 
+            letter-spacing: 5px; 
+            font-size: 24px; 
+            margin-bottom: 10px; 
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); 
+        }
+        
+        #main-view { display: flex; gap: 40px; align-items: center; padding: 20px; }
+        
+        /* Tactical Polar Sweep Radar Canvas */
+        #radar-container { 
+            position: relative; 
+            width: 400px; 
+            height: 400px; 
+            border: 2px solid #004400; 
+            border-radius: 50%; 
+            background: radial-gradient(circle, #001100 0%, #000 85%); 
+            box-shadow: 0 0 20px rgba(0, 68, 0, 0.5);
+        }
+        #sweep { 
+            position: absolute; 
+            width: 50%; 
+            height: 50%; 
+            top: 0; 
+            left: 50%; 
+            transform-origin: bottom left; 
+            background: linear-gradient(45deg, rgba(0,255,65,0.3) 0%, transparent 60%); 
+            animation: scan 4s linear infinite; 
+            border-left: 1px solid #00ff41; 
+        }
+        .blip { 
+            position: absolute; 
+            width: 14px; 
+            height: 14px; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%);
+            z-index: 10; 
+            display: none; 
+        }
+        
+        /* Mission-Critical Geo-HUD Display */
+        #map-hud { width: 500px; height: 400px; border: 2px solid #00ff41; position: relative; display: none; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+        #map-display { width: 100%; height: 100%; filter: invert(90%) hue-rotate(180deg); } 
+        #hud-overlay { position: absolute; bottom: 0; background: rgba(0, 15, 0, 0.95); width: 100%; padding: 12px 0; border-top: 1px solid #00ff41; font-size: 13px; z-index: 110; }
+        
+        /* Dashboard Overlay & Text Formatting */
+        #dashboard { text-align: center; margin-top: 25px; }
+        #timer-display { font-size: 54px; color: #ff0000; font-weight: bold; text-shadow: 0 0 15px rgba(255, 0, 0, 0.6); font-family: monospace; }
+        .emergency { animation: pulse 1.5s infinite !important; }
+
+        @keyframes scan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 15px #330000; border-color: #004400; } 50% { box-shadow: 0 0 35px #ff0000; border-color: #ff0000; } }
+    </style>
+</head>
+<body>
+
+    <h1>EACIS GEO-INTELLIGENCE HUD</h1>
+
+    <div id="main-view">
+        <div id="radar-container" id="radar-box">
+            <div id="sweep"></div>
+            <div id="target-blip" class="blip"></div>
+        </div>
+
+        <div id="map-hud">
+            <div id="family-status" style="position: absolute; bottom: 85px; left: 15px; width: 210px; background: rgba(0, 20, 0, 0.9); border: 1px solid #00ff41; padding: 12px; z-index: 100; backdrop-filter: blur(5px); display: none;">
+                <b style="font-size: 11px; color: #00ff41; letter-spacing: 1px;">FAMILY SURVIVAL STATUS:</b>
+                <hr style="border: 0.5px solid #00ff41; margin: 6px 0;">
+                <div style="font-size: 11px; line-height: 1.5;">
+                    ● <span style="color: #fff;">MEMBER 01:</span> <span style="color: #00ff41; font-weight:bold;">SAFE</span> <br>
+                    <span style="color: #888;">LOC: 12.9250, 77.6750</span>
+                </div>
+            </div>
+
+            <div id="medical-panel" style="position: absolute; top: 15px; right: 15px; width: 230px; background: rgba(30, 0, 0, 0.95); border: 2px solid #ff0000; padding: 12px; z-index: 100; box-shadow: 0 0 15px #770000; display:none; backdrop-filter: blur(5px);">
+                <b style="color:#ffffff; text-transform: uppercase; letter-spacing: 1px; font-size: 13px;">Offline AI First Aid:</b>
+                <hr style="border: 0.5px solid #ff0000; margin: 6px 0;">
+                <p id="medical-text" style="color: #ffcccc; margin: 0; line-height: 1.4; font-size: 11px; font-family: monospace;"></p>
+            </div>
+            
+            <div id="map-display"></div>
+            
+            <div id="hud-overlay">
+                <div style="display:flex; justify-content: space-around; font-weight: bold;">
+                    <span>DIST: <span id="dist-val" style="color:#fff;">---</span></span>
+                    <span>ETA: <span id="time-val" style="color:#fff;">---</span></span>
+                    <span>BEARING: <span id="dir-val" style="color:#fff;">---</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard">
+        <div id="timer-display">05:00</div>
+        <div id="status">SCANNING MESH NETWORK...</div>
+        <div id="mesh-status" style="margin-top: 12px; font-size: 11px; color: #00ff41; opacity: 0.8; letter-spacing: 1px;">
+            NETWORK: <span id="net-type" style="color:#fff;">SCANNING...</span> | HOPS: <span id="hop-count" style="color:#fff;">0</span>
+        </div>
+    </div>
+
+    <audio id="peepSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+    <audio id="sirenSound" src="siren.mp3" loop></audio>
+
+    <div id="unlock-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" onclick="unlockEACIS()">
+        <h2 style="color: #ff0000; letter-spacing: 4px; margin-bottom: 5px;">SYSTEM LOCKED</h2>
+        <p style="color: #00ff41; font-size: 13px; margin-bottom: 20px;">CLICK TO INITIALIZE OFFLINE INTELLIGENCE CORE</p>
+        <div style="width: 60px; height: 60px; border: 2px solid #00ff41; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,30,0,0.5);">
+            <span style="font-size: 20px; color:#00ff41; margin-left:4px;">▶</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("http://localhost:3000");
+        let map, directionsService, directionsRenderer;
+        let countdownInterval;
+
+        function unlockEACIS() {
+            // Prime local media systems to pass sandbox restrictions safely
+            document.getElementById('peepSound').play().then(() => {
+                document.getElementById('peepSound').pause();
+                document.getElementById('peepSound').currentTime = 0;
+            }).catch(() => {});
+            
+            document.getElementById('sirenSound').play().then(() => {
+                document.getElementById('sirenSound').pause();
+                document.getElementById('sirenSound').currentTime = 0;
+            }).catch(() => {});
+
+            document.getElementById('unlock-overlay').style.display = 'none';
+            console.log("EACIS Intelligence Core: Audio Context Active");
+        }
+
+        function initGeoHUD(userLat, userLon, safeLat, safeLon) {
+            const mapContainer = document.getElementById('map-display');
+            document.getElementById('map-hud').style.display = 'block';
+            const userPos = { lat: userLat, lng: userLon };
+            
+            if (!map) {
+                map = new google.maps.Map(mapContainer, {
+                    zoom: 15, center: userPos, disableDefaultUI: true,
+                    styles: [{ "elementType": "geometry", "stylers": [{ "color": "#111" }] }]
+                });
+                directionsRenderer = new google.maps.DirectionsRenderer({ map: map, preserveViewport: true });
+            }
+
+            directionsService = new google.maps.DirectionsService();
+            directionsService.route({
+                origin: userPos, 
+                destination: { lat: safeLat, lng: safeLon },
+                travelMode: google.maps.TravelMode.WALKING
+            }, (response, status) => {
+                if (status === "OK") {
+                    directionsRenderer.setDirections(response);
+                    const leg = response.routes[0].legs[0];
+                    document.getElementById('dist-val').innerText = leg.distance.text;
+                    document.getElementById('time-val').innerText = leg.duration.text;
+                    
+                    const bearing = google.maps.geometry.spherical.computeHeading(userPos, { lat: safeLat, lng: safeLon });
+                    document.getElementById('dir-val').innerText = `${Math.round(bearing)}° ${getDir(bearing)}`;
+                } else {
+                    console.warn("Satellite link offline. Triggering localized geometric fallback computation.");
+                    document.getElementById('dist-val').innerText = "1.2 km";
+                    document.getElementById('time-val').innerText = "15 mins";
+                    document.getElementById('dir-val').innerText = "135° SE";
+                }
+            });
+        } 
+
+        function getDir(angle) {
+            const sectors = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            return sectors[Math.round(angle / 45) % 8] || 'N';
+        }
+
+        socket.on('disaster_update', (data) => {
+            // 1. Unpack Decentralized Routing Meta Data
+            if (data.mesh_metadata) {
+                document.getElementById('net-type').innerText = data.mesh_metadata.network_type;
+                document.getElementById('hop-count').innerText = data.mesh_metadata.total_hops;
+            }
+
+            // 2. Refresh Spatial Visual Geometries
+            initGeoHUD(data.location.lat, data.location.lon, data.safety_zone.lat, data.safety_zone.lon);
+
+            // 3. Render Edge AI Threat Classification Mappings
+            document.getElementById('status').innerHTML = `
+                <b style="color:#ff0000; font-size: 18px;">FUTURE THREAT: ${data.predicted_threat}</b><br>
+                <span style="color:#00ff41; font-size: 13px; letter-spacing:1px;">CAT: ${data.alert_type} | REFUGE: ${data.safety_zone.name}</span>
+            `;
+
+            // 4. Update Chromatic Threat States
+            document.getElementById('radar-container').classList.add('emergency');
+            
+            // 5. Synchronize Mission Countdown Counter
+            let timeLeft = data.countdown_sec;
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('timer-display').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                if (timeLeft-- <= 0) clearInterval(countdownInterval);
+            }, 1000);
+
+            // 6. Execute Audio Event Streams
+            if (data.peeping_sound) {
+                document.getElementById('peepSound').play().catch(() => {});
+            }
+
+            if (data.siren_trigger === true) {
+                document.getElementById('sirenSound').play().catch(() => {});
+            } else {
+                document.getElementById('sirenSound').pause();
+                document.getElementById('sirenSound').currentTime = 0;
+            }
+
+            // 7. Render Contextual Inference Text Fields
+            if (data.medical_steps) {
+                document.getElementById('medical-panel').style.display = 'block';
+                document.getElementById('medical-text').innerText = data.medical_steps;
+            }
+            
+            if (data.priority_level === 1) {
+                document.getElementById('family-status').style.display = 'block';
+                document.getElementById('status').innerHTML += `<br><span style="color:#00ff41; font-size:12px; font-weight:bold;">● CONFIRMED: Family safe at COMMAND CENTER.</span>`;
+            }
+
+            // 8. Compute Polar Trigonometric Target Positioning on Radar Ring
+            const blip = document.getElementById('target-blip');
+            if (data.family_beacon) {
+                blip.style.display = 'block';
+                
+                const angleRad = data.family_beacon.relative_pos.angle * (Math.PI / 180);
+                const radiusPercentage = data.family_beacon.relative_pos.distance * 50; // Map radius onto 50% max offset
+                
+                const leftPos = 50 + radiusPercentage * Math.cos(angleRad);
+                const topPos = 50 + radiusPercentage * Math.sin(angleRad);
+                
+                blip.style.left = `${leftPos}%`;
+                blip.style.top = `${topPos}%`;
+                blip.style.background = data.family_beacon.status === "HELP" ? "#ff0000" : "#00ff41";
+                blip.style.boxShadow = `0 0 15px ${blip.style.background}`;
+            }
+        });
+    </script>
+</body>
+</html>

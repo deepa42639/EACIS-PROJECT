@@ -1,0 +1,1 @@
+const { SerialPort } = require('serialport'); console.log("Bridge Ready!");
